@@ -1,0 +1,35 @@
+source :rubygems
+
+gem 'highline'
+
+gem 'activesupport'
+gem 'i18n' # inflection support
+
+group :development, :test, :spec do
+  gem 'pry-nav'
+  gem 'pry-stack_explorer'
+  gem 'pry-exception_explorer'
+
+  gem 'pry'
+
+  gem 'debugger'
+end
+
+group :test do
+  gem 'aruba', :require => 'aruba/cucumber'
+end
+
+group :spec do
+  gem 'rspec'
+  gem 'rspec-expectations', :git => 'https://github.com/rspec/rspec-expectations.git'
+end
+
+group :guard do
+  gem 'guard'
+  gem 'guard-rspec'
+end
+
+group :reporting do
+  gem 'bcat'
+  gem 'rdiscount'
+end

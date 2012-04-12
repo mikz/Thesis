@@ -1,0 +1,201 @@
+#!/usr/bin/env ruby
+require 'bundler/setup'
+Bundler.require(:development)
+
+$: << File.join(File.dirname(__FILE__), '..', 'lib')
+require 'adventura'
+
+Adventura.start! do
+
+  player.inventory.limit!(3)
+
+  rooms do
+
+    add(:lake) do
+
+      people do
+        add :dwarf, label: 'small, funny looking dwarf',
+            messages: {
+              want: "You don't have what I want!",
+              give: "Ah! Give it to me!",
+              got: "Thanks! See you soon!"
+            },
+            talk: ->(dwarf, player) {
+              case
+              when player.inventory.find(:uzi).try(:knife?)
+                :give
+              when dwarf.inventory.find(:uzi)
+                :got
+              else
+                :want
+              end
+            },
+            after: {
+              take: ->(item, player) { interface.say "Thank you for this awesome #{item.label}" }
+            }
+      end
+
+      routes do
+        add(:rocky_road, dest: :cave, dir: :west, condition: ->(*) { false }, failure: ->(*) { interface.say "Can't go there!" })
+        add(:tunnel, dest: :cave, dir: :east)
+        add(:bridge, dest: :castle, condition: ->(route, room) { room.unlocked? }, failure: ->(route, *) { interface.say "#{route} is locked!" }) do
+          set :description, "long, long bridge above the lake"
+        end
+      end
+    end
+
+    add(:castle) do
+      set :locked, true
+      def unlocked?
+        not locked?
+      end
+
+      routes do
+        add(:bridge, dest: :lake)
+      end
+    end
+
+    add(:cave) do
+
+      items do
+        add(:knife, label: 'an old army knife',
+                    condition: ->(i, o) { player.inventory[i] and o === :uzi },
+                    action: ->(knife, uzi) {
+                      player.inventory.delete(knife) and
+                      uzi.label = "UZI combined with knife" and
+                      "You sucessfully combined #{knife} and #{uzi}"
+        })
+        add(:uzi, label: "UZI!") do
+          def knife?
+            label =~ /knife/
+          end
+        end
+        add(:rock, label: "huge piece of rock", condition: false)
+      end
+
+      routes do
+        add(:tunnel, dest: :cave, dir: nil)
+        add(:road, dest: :lake, dir: :west)
+      end
+
+   end
+  end
+
+  events do
+    add "print where you are" do
+      watch(:room)
+      on :entry
+      fire { interface.say "You are at: #{player.position}" }
+    end
+
+    on(:start) do
+      interface.say "Welcome to Adventura!"
+    end
+  end
+
+  actions do
+    add(:bark) do
+      interface.say "Bark! Bark!"
+    end
+
+    add(:look) do
+      items = player.position.items
+      if items.empty?
+        interface.say "You don't see any items"
+      else
+        interface.say "You see following items:"
+        interface.say items.format
+      end
+    end
+
+    add(:pick) do |item_name = nil|
+      unless item_name
+        items = player.position.items
+        item_name = interface.choose *items.map(&:to_s) do |menu|
+          menu.header = "What do you want to pick?"
+        end
+      end
+
+      if item = player.pick(item_name)
+        interface.say "You picked up #{item.format}"
+      else
+        interface.say "There is no #{item_name}"
+      end
+    end
+
+    add :describe do |entity_name|
+      entity = entities.find(entity_name)
+      if entity
+        interface.say entity.description
+      else
+        interface.say "There is no #{entity_name}"
+      end
+    end
+
+    add(:use) do |item_name, subject_name = nil|
+      item = player.item(item_name)
+      subject = player.item(subject_name)
+
+      if item
+        if result = player.use(item, subject)
+          interface.say result
+        else
+          interface.say "there is no way how you can use #{item.format}"
+        end
+      else
+        interface.say "Sorry, but don't know #{item_name}"
+      end
+    end
+
+    add(:give) do |item_name, person_name|
+      person = player.position.people.find(person_name)
+      item = player.inventory.find(item_name)
+
+      break interface.say "There is no person #{person_name}" unless person
+      break interface.say "There is no #{item_name}" unless item
+
+      player.give(item, person)
+    end
+
+    add(:talk) do |person_name|
+      person = player.position.people.find(person_name)
+      if person
+        interface.say player.talk(person)
+      else
+        interface.say "There is no person #{person_name}"
+      end
+
+    end
+  end
+
+  command /^where can I go\??$/i,
+          method: -> { interface.say player.position.routes.format },
+          help: "tells you where you are",
+          name: "where can I go?"
+
+  command /^go to the (.+)$/,
+          method: :go_to,
+          help: "try to go to given place",
+          name: "go to the"
+
+  command 'look around', method: :look, help: "look around you"
+
+  command /^go (\S+)$/, method: :go
+  command /^follow (.+)$/, method: :follow
+  command /^where am I\??$/i, method: -> { interface.say "You are at: #{player.position}" }
+  command 'help', method: :help, help: "prints this"
+  command 'bark', method: :bark
+  command 'exit', method: -> { exit }, help: "quit the game"
+
+  command 'pick', method: :pick
+  command /^pick (.+)$/, method: :pick
+  command /^use (.+?) on (.+?)$/, method: :use
+  command /^use (.+)$/, method: :use
+
+  command /^describe (.+)$/, method: :describe
+
+  command /^talk to (.+)$/, method: :talk, help: "talk to someone", name: "talk to"
+  command /^give (.+?) to (.+?)$/, method: :give, help: "give something to someone", name: "give item to person"
+
+  self.start = :lake
+end
