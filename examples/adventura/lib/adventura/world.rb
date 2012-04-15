@@ -2,7 +2,24 @@ module Adventura
   class World
     include Adventura::Collection::DSL
 
-    collections_of :items, :people, :rooms, :actions
+    # @attribute [r] items
+    # @return [Collection<Item>]
+    collection_of :items
+
+    # @attribute [r] people
+    # @return [Collection<Person>]
+    collection_of :people
+
+    # @attribute [r] rooms
+    # @return [Collection<Room>]
+    collection_of :rooms
+
+    # @attribute [r] actions
+    # @return [Collection<Action>]
+    collection_of :actions
+
+    # @attribute [r] events
+    # @return [Collection<Event>]
     collection_of :events do
       def on(event, &block)
         add(event) do
@@ -14,18 +31,23 @@ module Adventura
     end
 
     attr_accessor :start
+    # @return [Player]
     attr_reader :player
 
     attr_reader :interface
 
+    # @param [Interface::Abstract] interface
+    # @param [Player] player
+    # @param [Proc] block
+    # @yield the passed block in context of current instance
     def initialize(interface, player, &block)
       @interface = interface
       @player = player
       at_exit &method(:exit!).to_proc
       define(&block) if block
-      transition.call(Transition.new(entity: :world, on: :start, object: self, player: player))
     end
 
+    # @return [Collection<Room,Route,Item>]
     def entities
       current = player.position
       routes = current.routes
@@ -35,19 +57,21 @@ module Adventura
       Collection(Array(current) | routes | items) # | rooms # does not make sense to include rooms, they are too far away
     end
 
+    # @return [void]
     def define(&block)
       instance_exec(&block)
     end
 
+    # @return [void]
     def process string
-      command = commands.find { |cmd| cmd =~ string }
-      if command
+      if command = commands.find { |cmd| cmd =~ string }
         command.execute(self, string)
       else
         interface.unknown_command string
       end
     end
 
+    # @return [Array<Command>]
     def commands
       @commands ||= []
     end
@@ -56,10 +80,13 @@ module Adventura
       @start or :start
     end
 
+    # @return [void]
     def spin!
+      transition.call(Transition.new(entity: :world, on: :start, object: self, player: player))
       player.start(rooms[start], &transition)
     end
 
+    # @return [void]
     def go_to room, route = nil
       room = rooms.lookup(room) or return interface.report_invalid_room
       unless route
@@ -74,6 +101,7 @@ module Adventura
       player.go_to(room, route)
     end
 
+    # @return [void]
     def go direction
       routes = player.position.routes_on(direction)
       return interface.ask_for_direction(routes) if routes.size > 1
@@ -84,12 +112,14 @@ module Adventura
       player.go_to(room, route)
     end
 
+    # @return [void]
     def follow route
       route = player.position.routes.find(route) or return interface.report_invalid_route
 
       player.follow(route)
     end
 
+    # @return [void]
     def help
       cmds = commands.map { |command|
         next unless command.name
@@ -105,6 +135,7 @@ module Adventura
       interface.say cmds.join("\n")
     end
 
+    # @return [void]
     def method_missing(method, *args)
       if action = actions.lookup(method)
         self.define_singleton_method(method, &action)
@@ -114,10 +145,12 @@ module Adventura
       end
     end
 
+    # @return [Array<Command>]
     def possible_commands
       commands.map(&:name).compact
     end
 
+    # @return [Boolean]
     def condition(entity, *args)
       case
 

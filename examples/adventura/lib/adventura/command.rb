@@ -6,12 +6,17 @@ module Adventura
 
     delegate :match, :to => :matcher
 
+    # @param [String, Regexp, #match] matcher
+    # @param [Hash] options
+    # @option options [String] help
+    #
     def initialize(matcher, options = {})
       @matcher = matcher
       super(options)
       self.name ||= matcher if matcher.respond_to?(:to_str) && options[:help]
     end
 
+    # @return [Boolean]
     def =~(command)
       super(command) or matcher.match(command)
     end
@@ -20,6 +25,7 @@ module Adventura
       @table[key]
     end
 
+    # @return [void]
     def execute(world, command)
       args = match(command).captures
       args = args.empty? ? self.args : args

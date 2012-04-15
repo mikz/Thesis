@@ -2,7 +2,7 @@
 require 'active_support/core_ext/module/attribute_accessors'
 
 
-module Adventura
+module Adventura extend self
   autoload :World, 'adventura/world'
 
   autoload :Collection, 'adventura/collection'
@@ -20,31 +20,44 @@ module Adventura
   autoload :Player, 'adventura/player'
   autoload :Conversions, 'adventura/conversions'
 
-  mattr_writer :interface
-  mattr_accessor :world
-  mattr_reader :player
+  # @attribute [w]
+  mattr_writer :world
 
-  extend self
-
-  def interface
-    @interface ||= Interface::Shell.new
+  # @attribute [r]
+  def player
+    @player ||= Player.new(name)
   end
 
+  # @attribute [rw]
+  mattr_accessor :interface
+
+  # @return [World]
+  def world
+    @world ||= World.new(interface, player)
+  end
+
+  # Creates world according to specification in passed block
+  # and starts it
   def start!(&block)
-    trap('INT')  { exit }
-    trap('TERM') { exit }
-    trap('QUIT') { exit }
+    init_handlers
 
-    name = interface.ask "Your name is? "
-
-    @@player = Player.new(name)
-    @@world = World.new(interface, player, &block)
-
+    world.define(&block)
     world.spin!
 
     while command = interface.get_command(world.possible_commands)
       world.process command
     end
+  end
+
+  private
+  def init_handlers
+    trap('INT')  { exit }
+    trap('TERM') { exit }
+    trap('QUIT') { exit }
+  end
+
+  def name
+    interface.ask "Your name is? "
   end
 end
 

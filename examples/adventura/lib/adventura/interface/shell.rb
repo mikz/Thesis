@@ -5,9 +5,10 @@ HighLine.track_eof = false
 
 module Adventura
   module Interface
-    class Shell
+    class Shell < Base
       attr_reader :stdin, :stdout, :stderr
       attr_reader :console
+
       def initialize(stdin = $stdin, stdout = $stdout, stderr = $stderr)
         @stdin, @stdout, @stderr = stdin, stdout, stderr
         @console = HighLine.new(stdin, stdout)

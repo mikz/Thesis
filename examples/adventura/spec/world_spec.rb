@@ -125,7 +125,7 @@ module Adventura
 
       # it { should have(1).event }
       it "should fire start event" do
-        expect { world }.to raise_error('fired!')
+        expect { world.spin! }.to raise_error('fired!')
       end
     end
   end

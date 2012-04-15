@@ -5,6 +5,8 @@ Bundler.require(:development)
 $: << File.join(File.dirname(__FILE__), '..', 'lib')
 require 'adventura'
 
+Adventura.interface = Interface::Shell.new
+
 Adventura.start! do
 
   player.inventory.limit!(3)

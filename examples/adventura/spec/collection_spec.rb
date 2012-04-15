@@ -80,7 +80,7 @@ module Adventura
 
       it "should find element" do
         collection.find('knife').should == knife
-        collection.lookup('old army knife').should == knife
+        collection.find('old army knife').should == knife
       end
     end
 

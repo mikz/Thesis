@@ -1,5 +1,7 @@
 module Adventura
-    module Conversions
+  module Conversions
+
+    # @return [Collection]
     def Collection(array)
       collection = Adventura::Collection.new
       array.each do |entity|

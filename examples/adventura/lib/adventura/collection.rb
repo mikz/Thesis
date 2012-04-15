@@ -7,10 +7,14 @@ require 'active_support/inflections'
 
 module Adventura
 
-  class Collection < Hash
+  class Collection
+
+    # @param [Class] klass
     def initialize(klass = nil)
       @klass = klass
+      @store = Hash.new
       @definitions = {}
+      @limit = Float::INFINITY
     end
 
     def add id, attributes = {}, &block
@@ -18,54 +22,75 @@ module Adventura
 
       return if hit_limit?
 
-      self[id] = item = @klass.new(id, attributes, &block)
-
-      item
+      self[id] = case @klass.instance_method(:initialize).arity
+                 when 1
+                   @klass.new(id, &block)
+                 when -2
+                   @klass.new(id, attributes, &block)
+                 else
+                   raise "unknown number of arguments"
+                 end
     end
 
+    # @param [Number]
+    # @return [Number]
     def limit!(number)
       @limit = number
     end
 
-    def limit
-      @limit or Float::INFINITY
-    end
+    attr_accessor :limit
 
+    # @return [Boolean]
     def hit_limit?
       count >= limit
     end
 
+    # @overload define(key, value)
+    #   @param key
+    #   @param value
+    # @overload define(key, &block)
+    #   @param key
+    #   @param block
     def define(key, value = nil, &block)
       @definitions[key] = value || block
     end
 
+    # @return [Object, nil]
     def defined(key)
       @definitions[key]
     end
 
+    # @return [Array]
     def match(object)
       values.select{ |value| value.match(object) }
     end
 
+    # @param key [String, Symbol]
+    # @return [Object, nil]
     def lookup(key)
-      self[key] or values.find{ |value| value =~ key }
+      self[key] or find(key)
     end
 
+    # @overload find(id)
+    #   Finds object by id
+    #   @param [String, Symbol, #match] id
+    # @overload find(&block)
+    #   @yield [element] object to match
+    #   @yieldparam object one object of collection
     def find(id = nil, &block)
       block = ->(value) { value =~ id } if id
-      super(&block)
+      values.find(&block)
     end
 
-    def to_a
-      values
-    end
-
+    # @yield [element]
+    # @return [Array]
     def search
-      select{ |id, element| yield(element) }.values
+      @store.select{ |id, element| yield(element) }.values
     end
 
+    # @return [Object, nil]
     def [](key)
-      super(key.to_sym)
+      @store[key.to_sym]
     end
 
     def []=(key, value = key)
@@ -73,17 +98,20 @@ module Adventura
         raise "Cannot replace existing value #{self[key]}"
       else
         return false if hit_limit?
-        super(key.to_sym, value)
+        @store[key.to_sym] = value
       end
     end
     alias :set :[]=
 
+    # @param key [String, Symbol, #to_sym]
+    # @param collection [Collection, Array, #delete]
     def take(key, collection)
       set(key, collection.delete(key))
     end
 
+    # @param key [String, Symbol, #to_sym]
     def delete(key)
-      super(key.to_sym)
+      @store.delete(key.to_sym)
     end
 
     def format
@@ -91,11 +119,43 @@ module Adventura
       values.map{ |value| value.instance_exec(&block) }.join("\n")
     end
 
+    # Add item to collection
+    # @param item
+    # @return item
     def <<(item)
       self[item] = item
     end
 
-    delegate :each, :|, :to_ary, :to => :values # :&, :+,
+    # @method values
+    # @return [Array]
+    delegate :values, :to => :@store
+    alias :to_a :values
+
+    # @method empty?
+    # @return [Boolean]
+    delegate :empty?, :to => :@store
+
+    # @method has_key?
+    # @return [Boolean]
+    delegate :has_key?, :to => :@store
+
+    # @method count
+    # @return [Integer]
+    delegate :count, :to => :@store
+
+    # @method each(&block)
+    # @yield [element]
+    # @return [Array] array
+    delegate :each, :to => :values
+
+    # @method |(other)
+    # @param [Array] other other array
+    # @return [Array]
+    delegate :|, :to => :values
+
+    # @method to_ary
+    # @return [Array]
+    delegate :to_ary, :to => :values
 
     private
     module DSL

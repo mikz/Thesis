@@ -12,11 +12,13 @@ module Adventura
       let(:player) { Player.new('Player') }
       let(:item) { Item.new(:item) }
       let(:callbacks) { { :before => [], :after => []} }
+      let(:world) { double('World', :callbacks => callbacks) }
 
       before do
         player.inventory << item
-        player.stub(:world) { double('World', :callbacks => callbacks) }
-        Adventura.world = player.world
+        player.stub(:world) { world }
+        world.stub(:player) { player }
+        Adventura.stub(:world) { world }
 
         knight[:before] = { :take => ->(*args) { callbacks[:before] << args } }
         knight[:after]  = { :take => ->(*args) { callbacks[:after]  << args } }

@@ -5,12 +5,14 @@ module Adventura
     attr_reader :id, :block
     delegate :to_s, :to_sym, :to => :id
 
-    def initialize id, attributes, &block
+    # @param id [String, Symbol, #to_sym]
+    # @param block [Proc]
+    def initialize id, &block
       @id = id
-      @attributes = attributes
       @block = block
     end
 
+    # @return [Proc]
     def to_proc
       @block # .dup.extend(Convertions).to_lambda
     end

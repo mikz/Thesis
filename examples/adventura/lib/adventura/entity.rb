@@ -10,7 +10,11 @@ module Adventura
     attr_reader :id
     delegate :to_s, :to_sym, :to => :id
 
-    def initialize id, attributes = {}, &block
+    # @param id
+    # @param [Hash] attributes
+    # @param [Proc] block
+    # @yield the passed block in context of current instance
+    def initialize(id, attributes = {}, &block)
       @id = id
       super(attributes)
       self.instance_exec(&block) if block
@@ -48,18 +52,22 @@ module Adventura
       super or id.to_s.humanize
     end
 
+    # @return [Boolean]
     def ==(other)
       super and id == other.id
     end
 
+    # @return [Boolean]
     def ===(other)
       other.to_sym === id
     end
 
+    # @return [Boolean]
     def =~(other)
       self === other or self === other.to_s.gsub(/\s/,'_') or self.format == other
     end
 
+    # @return [String]
     def to_str
       to_s
     end
