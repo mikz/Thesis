@@ -1,4 +1,2 @@
-module Cloud
-  autoload :VERSION, "cloud/version"
-  autoload :CLI, "cloud/cli"
-end
+require 'cloud/version'
+require 'cloud/cli'
