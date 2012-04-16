@@ -8,6 +8,7 @@ require 'active_support/inflections'
 module Adventura
 
   class Collection
+    include Enumerable
 
     # @param [Class] klass
     def initialize(klass = nil)
