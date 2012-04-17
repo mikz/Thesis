@@ -1,16 +1,16 @@
 require 'cloud'
 require 'pry'
 
-describe "all tasks" do
+describe 'task' do
   let(:tasks) { Cloud::CLI.all_tasks }
 
   it { tasks.should include('create', 'list', 'destroy') }
 
-  context 'create task' do
+  context 'create' do
     let(:task) { tasks['create'] }
     subject { task }
 
-    context "options" do
+    context 'options' do
       its(:options) { should include(:key, :type) }
 
       context 'key option' do
