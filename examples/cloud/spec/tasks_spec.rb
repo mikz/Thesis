@@ -9,9 +9,9 @@ describe 'task' do
     let(:task) { tasks['create'] }
     subject { task }
 
-    context 'options' do
-      its(:options) { should include(:key, :type) }
+    its(:options) { should include(:key, :type) }
 
+    context 'options' do
       context 'key option' do
         subject { task.options[:key] }
         its(:default) { should == Socket.gethostname }

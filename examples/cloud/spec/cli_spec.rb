@@ -3,8 +3,8 @@ require "cloud"
 Fog::Mock.delay = 0
 
 describe Cloud::CLI do
+  # do not really call the cloud
   before { Fog.mock! }
-  after  { Fog.unmock! }
   # reset all created servers, keys and other stuff
   after  { Fog::Mock.reset }
 
@@ -13,7 +13,9 @@ describe Cloud::CLI do
   # other solution would be to capture real $stdout
   let(:shell) { Thor::Base.shell.new }
   let(:stdout) { StringIO.new }
-  let(:output) { stdout.string }
+  # run the task before returning output
+  let(:output) { task && stdout.string }
+  # before anything, set shell's stdout to our stdout
   before { shell.stub(:stdout) { stdout } }
 
   # we need to set ENV variables, because app uses them
@@ -27,14 +29,18 @@ describe Cloud::CLI do
   let(:task) {  Cloud::CLI.start(command,  shell: shell) }
 
   # run the task and return output
-  subject { task && output }
+  subject { output }
 
   context "creates server" do
     let(:key_pair) { connection.key_pairs.create(name: "hostname") }
     let(:command) { %W(create ami-id --key=#{key_pair.name} --type=t1.mini) }
 
+    let(:server) { task && connection.servers.all }
+    it("should create one server") { server.should be_one }
+
     it("prints ami of server") { should match('started ami-id') }
     it("prints type of server") { should match('t1.mini') }
+    it("prints id of server") { should match(server.first.id) }
   end
 
   context 'list servers' do
