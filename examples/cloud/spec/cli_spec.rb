@@ -40,13 +40,8 @@ describe Cloud::CLI do
   context 'list servers' do
     let(:command) { %W(list) }
 
-    let(:custom) { connection.servers.create(image_id: 'custom-ami') }
-    let(:other) { connection.servers.create(image_id: 'other-ami') }
-
-    before do
-      custom.wait_for(&:ready?)
-      other.wait_for(&:ready?)
-    end
+    let!(:custom) { connection.servers.create(image_id: 'custom-ami').reload }
+    let!(:other) { connection.servers.create(image_id: 'other-ami').reload }
 
     it "prints ami of servers" do
       should match(custom.image_id)
@@ -61,9 +56,8 @@ describe Cloud::CLI do
 
   context "destroy server" do
     let(:command) { %W(destroy #{server.id}) }
-    let(:server) { connection.servers.create(image_id: 'server-ami') }
 
-    before { server.wait_for(&:ready?) }
+    let!(:server) { connection.servers.create(image_id: 'server-ami').reload }
 
     it "prints message" do
       should match("Server #{server.id} will be destroyed")
@@ -75,20 +69,6 @@ describe Cloud::CLI do
       it "prints message" do
         should match("No server with id some-id found")
       end
-    end
-  end
-
-  context 'create task' do
-    let(:task) { Cloud::CLI.all_tasks['create'] }
-
-    context 'type option' do
-      subject { task.options[:type] }
-      its(:default){ should == "t1.micro" }
-    end
-
-    context 'key option' do
-      subject { task.options[:key] }
-      its(:default){ should == Socket.gethostname }
     end
   end
 
