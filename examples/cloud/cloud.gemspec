@@ -14,9 +14,9 @@ Gem::Specification.new do |gem|
   gem.name          = "cloud"
   gem.require_paths = ["lib"]
   gem.version       = Cloud::VERSION
-  
+
   gem.add_dependency "fog"
-  gem.add_dependency "thor"
-  
+  gem.add_dependency "thor", '>= 0.15.0.rc2'
+
   gem.add_development_dependency "rspec"
 end
