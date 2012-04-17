@@ -1,5 +1,4 @@
 require 'cloud'
-require 'pry'
 
 describe 'task' do
   let(:tasks) { Cloud::CLI.all_tasks }
