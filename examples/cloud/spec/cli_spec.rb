@@ -41,6 +41,7 @@ describe Cloud::CLI do
     it("prints ami of server") { should match('started ami-id') }
     it("prints type of server") { should match('t1.mini') }
     it("prints id of server") { should match(server.first.id) }
+    it("prints dns_name of server") { should match(server.first.dns_name) }
   end
 
   context 'list servers' do
@@ -57,6 +58,14 @@ describe Cloud::CLI do
     it "prints dns of servers" do
       should match(custom.dns_name)
       should match(other.dns_name)
+    end
+
+    context "when there are no servers" do
+      before { Fog::Mock.reset }
+
+      it "prints no servers found" do
+        should match /no servers found/i
+      end
     end
   end
 
