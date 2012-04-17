@@ -5,24 +5,32 @@ Fog::Mock.delay = 0
 describe Cloud::CLI do
   before { Fog.mock! }
   after  { Fog.unmock! }
+  # reset all created servers, keys and other stuff
   after  { Fog::Mock.reset }
 
+  # we need to capture output of task
+  # stubbing stdout of shell and getting string from it
+  # other solution would be to capture real $stdout
   let(:shell) { Thor::Base.shell.new }
   let(:stdout) { StringIO.new }
   let(:output) { stdout.string }
   before { shell.stub(:stdout) { stdout } }
 
+  # we need to set ENV variables, because app uses them
   let(:key) { ENV["AWS_ACCESS_KEY_ID"] = 'key' }
   let(:secret) { ENV["AWS_SECRET_ACCESS_KEY"] = 'secret' }
 
+  # we also need own connection to AWS
   let(:connection) { Fog::Compute::AWS.new(aws_access_key_id: key, aws_secret_access_key: secret, region: "eu-west-1") }
-  let(:key_pair) { connection.key_pairs.create(name: "hostname") }
 
+  # and this is how task is invoked (with own shell as config option)
   let(:task) {  Cloud::CLI.start(command,  shell: shell) }
 
+  # run the task and return output
   subject { task && output }
 
   context "creates server" do
+    let(:key_pair) { connection.key_pairs.create(name: "hostname") }
     let(:command) { %W(create ami-id --key=#{key_pair.name} --type=t1.mini) }
 
     it("prints ami of server") { should match('started ami-id') }
@@ -40,7 +48,7 @@ describe Cloud::CLI do
       other.wait_for(&:ready?)
     end
 
-    it("prints ami of servers") do
+    it "prints ami of servers" do
       should match(custom.image_id)
       should match(other.image_id)
     end

@@ -14,7 +14,6 @@ module Cloud
       server = connection.servers.create image_id: image_id, flavor_id: options[:type], key_name: options[:key]
       server.wait_for { print "."; ready? }
       say "started #{image_id} #{server.flavor_id} instance #=> id: #{server.id}, dns: #{server.dns_name}"
-      server
     end
 
     desc "list", "list all EC2 servers"
