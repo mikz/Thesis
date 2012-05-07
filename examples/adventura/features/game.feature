@@ -37,6 +37,9 @@ Feature:
     * type "pick knife"
     * see "There is no knife"
 
+    * type "pick rock"
+    * see "You cannot pick rock"
+
   Scenario: Use
     * type "go east"
     * type "use knife"

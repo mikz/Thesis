@@ -16,9 +16,9 @@ Adventura.start! do
     add(:lake) do
 
       people do
-        add :dwarf, label: 'small, funny looking dwarf',
+        add(:dwarf, label: 'small, funny looking dwarf',
             messages: {
-              want: "You don't have what I want!",
+              want: "You don't have what I want!\nI want UZI with knife!",
               give: "Ah! Give it to me!",
               got: "Thanks! See you soon!"
             },
@@ -33,8 +33,11 @@ Adventura.start! do
               end
             },
             after: {
-              take: ->(item, player) { interface.say "Thank you for this awesome #{item.label}" }
-            }
+              take: ->(item, player) {
+                rooms[:castle].set(:locked, false)
+                interface.say "Thank you for this awesome #{item.label}.\nAnd I unlocked you the bridge!"
+              }
+            })
       end
 
       routes do
@@ -47,13 +50,57 @@ Adventura.start! do
     end
 
     add(:castle) do
-      set :locked, true
+      set :locked, false
       def unlocked?
         not locked?
       end
 
       routes do
         add(:bridge, dest: :lake)
+        add(:tunnel, dest: :cellar)
+      end
+
+      items do
+        add(:fountain, label: 'nice fountain with fresh water',
+            action: ->(*) { player.abilities << :strength and "You feel stronger!" })
+        add(:sword, label: 'very heavy sword', pickable: ->(player) { player.abilities.include?(:strength) },
+                    condition: ->(i, o) { o === :hole },
+                    action: ->(sword, hole) { player.inventory.delete(sword) and rooms[:cellar].people[:dragon].die! and "Looks like you killed dragon!" })
+      end
+    end
+
+    add(:cellar) do
+      people do
+        add(:dragon, label: 'Huge, angry looking dragon!') do
+          def die!
+            Adventura.world do
+              cellar = rooms[:cellar]
+              cellar.people.delete(:dragon)
+              cellar.routes[:stairs].set(:empty, true)
+            end
+          end
+        end
+      end
+
+      items do
+        add(:hole, label: 'hole for sword', description: 'looks like it will do something')
+      end
+
+      routes do
+        add(:tunnel, dest: :castle, dir: :back)
+        add(:stairs, dest: :bedroom, dir: :upstairs, condition: ->(route, room) { route.empty? }, failure: ->(*) { interface.say "Can't go there, dragon is there!" }) do
+          set :empty, false
+        end
+      end
+    end
+
+    add(:bedroom) do
+      people do
+        add(:princess, label: 'sweet, sleeping princess') do
+          def wake!
+            Adventura.world.win!
+          end
+        end
       end
     end
 
@@ -72,15 +119,14 @@ Adventura.start! do
             label =~ /knife/
           end
         end
-        add(:rock, label: "huge piece of rock", condition: false)
+        add(:rock, label: "huge piece of rock", pickable: false)
       end
 
       routes do
         add(:tunnel, dest: :cave, dir: nil)
         add(:road, dest: :lake, dir: :west)
       end
-
-   end
+    end
   end
 
   events do
@@ -93,20 +139,39 @@ Adventura.start! do
     on(:start) do
       interface.say "Welcome to Adventura!"
     end
+
+    on(:win) do
+      interface.say "#{player.name}, You won the game!"
+    end
+
+    add "move dwarf" do
+      watch(:room)
+      on(:entry)
+      fire do
+        lake = rooms[:lake]
+        castle = rooms[:castle]
+        from, to = lake.people[:dwarf] ? [lake, castle] : [castle, lake]
+        to.people.take(:dwarf, from.people)
+      end
+    end
   end
 
   actions do
-    add(:bark) do
-      interface.say "Bark! Bark!"
-    end
-
     add(:look) do
-      items = player.position.items
-      if items.empty?
+      position = player.position
+
+      if items = position.items and items.empty?
         interface.say "You don't see any items"
       else
         interface.say "You see following items:"
         interface.say items.format
+      end
+
+      if people = position.people and people.empty?
+        interface.say "You dont't see any people"
+      else
+        interface.say "You see following people:"
+        interface.say people.format
       end
     end
 
@@ -120,8 +185,10 @@ Adventura.start! do
 
       if item = player.pick(item_name)
         interface.say "You picked up #{item.format}"
-      else
+      elsif item.nil?
         interface.say "There is no #{item_name}"
+      else
+        interface.say "You cannot pick #{item_name}"
       end
     end
 
@@ -192,12 +259,14 @@ Adventura.start! do
   command 'pick', method: :pick
   command /^pick (.+)$/, method: :pick
   command /^use (.+?) on (.+?)$/, method: :use
-  command /^use (.+)$/, method: :use
+  command /^use (.+)$/, method: :use, :help => 'use something (on something)'
 
   command /^describe (.+)$/, method: :describe
 
   command /^talk to (.+)$/, method: :talk, help: "talk to someone", name: "talk to"
   command /^give (.+?) to (.+?)$/, method: :give, help: "give something to someone", name: "give item to person"
+
+  command 'wake princess', help: 'Wake the princess!', method: -> { player.position.people[:princess].wake! }, condition: -> { player.position === :bedroom }
 
   self.start = :lake
 end

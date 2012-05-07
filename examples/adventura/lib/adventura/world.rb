@@ -145,9 +145,12 @@ module Adventura
       end
     end
 
-    # @return [Array<Command>]
+    # @return [Array<String>]
     def possible_commands
-      commands.map(&:name).compact
+      commands.map do |command|
+        next if command.condition? and not instance_exec(&command.condition)
+        command.name
+      end.compact
     end
 
     # @return [Boolean]
@@ -173,6 +176,10 @@ module Adventura
         entity
 
       end
+    end
+
+    def win!
+      transition.call(Transition.new(entity: :world, on: :win, object: self, player: player))
     end
 
     private

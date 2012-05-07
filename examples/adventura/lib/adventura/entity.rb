@@ -88,7 +88,7 @@ module Adventura
     def run_callback(kind, action, *args)
       callback = self[kind].try(:[], action)
       if callback.respond_to?(:call)
-        Adventura.world.instance_exec(*args, &callback)
+        Adventura.world(*args, &callback)
       end
     end
 

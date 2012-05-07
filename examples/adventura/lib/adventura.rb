@@ -32,8 +32,10 @@ module Adventura extend self
   mattr_accessor :interface
 
   # @return [World]
-  def world
+  def world(*args, &block)
     @world ||= World.new(interface, player)
+    @world.instance_exec(*args, &block) if block_given?
+    @world
   end
 
   # Creates world according to specification in passed block

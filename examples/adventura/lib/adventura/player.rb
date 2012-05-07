@@ -1,4 +1,5 @@
 require 'active_support/core_ext/hash/reverse_merge'
+require 'set'
 
 module Adventura
   class Player
@@ -8,8 +9,11 @@ module Adventura
 
     attr_reader :name, :route, :room
 
+    attr_reader :abilities
+
     def initialize(name)
       @name = name
+      @abilities = Set.new
     end
 
     def world
@@ -66,6 +70,14 @@ module Adventura
     def pick(item_name)
       items = position.items
       item = items.find(item_name) or return
+
+      condition = item.pickable
+
+      unless condition.nil?
+        value = condition.respond_to?(:call) ? condition.call(self) : condition
+        return value unless value
+      end
+
       inventory.take(item, items) and item
     end
 
@@ -75,7 +87,8 @@ module Adventura
 
     def use(item, other = nil)
       args = [item, other]
-      world.condition(item, *args)
+      result = world.condition(item, *args)
+      item == result ? false : result
     end
 
     def talk(person)

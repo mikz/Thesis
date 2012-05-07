@@ -21,7 +21,6 @@ end
 
 group :spec do
   gem 'rspec'
-  gem 'rspec-expectations', :git => 'https://github.com/rspec/rspec-expectations.git'
 end
 
 group :guard do
